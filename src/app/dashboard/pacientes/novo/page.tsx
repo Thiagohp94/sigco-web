@@ -9,22 +9,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, UserPlus, User, Phone, MapPin, HeartPulse } from "lucide-react";
+import { ArrowLeft, UserPlus, User, Phone, MapPin, HeartPulse, ShieldAlert, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
+
+interface EmergencyContact {
+  name: string;
+  contact_relationship: string;
+  phone: string;
+  whatsapp: string;
+}
+
+const EMPTY_CONTACT: EmergencyContact = { name: "", contact_relationship: "", phone: "", whatsapp: "" };
 
 export default function NovoPacientePage() {
   const router = useRouter();
   const qc = useQueryClient();
+  const isDark = useTheme();
+
   const [form, setForm] = useState({
     name: "", cpf: "", rg: "", birth_date: "", gender: "", marital_status: "",
     zip_code: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "",
     phone_primary: "", phone_secondary: "", whatsapp: "", email: "",
     allergies: "", medications: "", chronic_diseases: "", medical_history: "", observations: "",
   });
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
 
   const mutation = useMutation({
     mutationFn: () => {
-      const payload = Object.fromEntries(Object.entries(form).filter(([, v]) => v !== ""));
+      const payload = {
+        ...Object.fromEntries(Object.entries(form).filter(([, v]) => v !== "")),
+        contacts: contacts.filter((c) => c.name.trim() !== ""),
+      };
       return api.post("/patients", payload).then((r) => r.data);
     },
     onSuccess: (data) => {
@@ -41,53 +58,76 @@ export default function NovoPacientePage() {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k, e.target.value),
   });
 
-  const inputClass = "bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:border-cyan-500/50 focus:ring-cyan-500/20";
+  function addContact() { setContacts((c) => [...c, { ...EMPTY_CONTACT }]); }
+  function removeContact(i: number) { setContacts((c) => c.filter((_, idx) => idx !== i)); }
+  function setContact(i: number, k: keyof EmergencyContact, v: string) {
+    setContacts((c) => c.map((contact, idx) => idx === i ? { ...contact, [k]: v } : contact));
+  }
+
+  const sectionCard = cn("rounded-2xl overflow-hidden border", isDark ? "glass-card border-white/5" : "bg-white border-gray-200 shadow-sm");
+  const sectionHeader = cn("flex items-center gap-2 px-6 py-4 border-b", isDark ? "border-white/5" : "border-gray-100");
+  const sectionTitle = cn("font-semibold text-sm", isDark ? "text-white/80" : "text-gray-700");
+  const inputClass = cn("rounded-xl", isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400");
+  const labelClass = cn("text-sm", isDark ? "text-white/50" : "text-gray-600");
+  const selectCls = cn("rounded-xl", isDark ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-800");
+  const selectContent = cn("border", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200");
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+        <button onClick={() => router.back()} className={cn("p-2 rounded-xl transition-all", isDark ? "hover:bg-white/5 text-white/40 hover:text-white" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700")}>
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <UserPlus className="w-7 h-7 text-cyan-400" />
-            Novo Paciente
-          </h1>
-        </div>
+        <h1 className={cn("text-3xl font-bold flex items-center gap-3", isDark ? "text-white" : "text-gray-900")}>
+          <UserPlus className="w-7 h-7 text-cyan-400" />
+          Novo Paciente
+        </h1>
       </div>
 
       <div className="grid gap-6">
         {/* Dados pessoais */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5">
+        <div className={sectionCard}>
+          <div className={sectionHeader}>
             <User className="w-4 h-4 text-cyan-400" />
-            <h2 className="font-semibold text-white/80">Dados Pessoais</h2>
+            <h2 className={sectionTitle}>Dados Pessoais</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2 space-y-1.5">
-              <Label className="text-white/50 text-sm">Nome completo *</Label>
+              <Label className={labelClass}>Nome completo *</Label>
               <Input placeholder="João da Silva" {...f("name")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">CPF</Label>
+              <Label className={labelClass}>CPF</Label>
               <Input placeholder="000.000.000-00" {...f("cpf")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">RG</Label>
+              <Label className={labelClass}>RG</Label>
               <Input placeholder="00.000.000-0" {...f("rg")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Data de nascimento</Label>
+              <Label className={labelClass}>Data de nascimento</Label>
               <Input type="date" {...f("birth_date")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Sexo</Label>
+              <Label className={labelClass}>Sexo</Label>
               <Select value={form.gender} onValueChange={(v) => set("gender", v ?? "")}>
-                <SelectTrigger className={inputClass}><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-                <SelectContent className="glass-strong border-white/10 text-white">
+                <SelectTrigger className={selectCls}><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                <SelectContent className={selectContent}>
                   <SelectItem value="male">Masculino</SelectItem>
                   <SelectItem value="female">Feminino</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className={labelClass}>Estado civil</Label>
+              <Select value={form.marital_status} onValueChange={(v) => set("marital_status", v ?? "")}>
+                <SelectTrigger className={selectCls}><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                <SelectContent className={selectContent}>
+                  <SelectItem value="single">Solteiro(a)</SelectItem>
+                  <SelectItem value="married">Casado(a)</SelectItem>
+                  <SelectItem value="divorced">Divorciado(a)</SelectItem>
+                  <SelectItem value="widowed">Viúvo(a)</SelectItem>
                   <SelectItem value="other">Outro</SelectItem>
                 </SelectContent>
               </Select>
@@ -96,109 +136,154 @@ export default function NovoPacientePage() {
         </div>
 
         {/* Contato */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5">
+        <div className={sectionCard}>
+          <div className={sectionHeader}>
             <Phone className="w-4 h-4 text-violet-400" />
-            <h2 className="font-semibold text-white/80">Contato</h2>
+            <h2 className={sectionTitle}>Contato</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Telefone principal</Label>
+              <Label className={labelClass}>Telefone principal</Label>
               <Input placeholder="(11) 99999-9999" {...f("phone_primary")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">WhatsApp</Label>
+              <Label className={labelClass}>WhatsApp</Label>
               <Input placeholder="(11) 99999-9999" {...f("whatsapp")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Telefone secundário</Label>
+              <Label className={labelClass}>Telefone secundário</Label>
               <Input placeholder="(11) 3333-3333" {...f("phone_secondary")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">E-mail</Label>
+              <Label className={labelClass}>E-mail</Label>
               <Input type="email" placeholder="joao@email.com" {...f("email")} className={inputClass} />
             </div>
           </div>
         </div>
 
+        {/* Contatos de emergência */}
+        <div className={sectionCard}>
+          <div className={cn(sectionHeader, "justify-between")}>
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400" />
+              <h2 className={sectionTitle}>Contatos de Emergência</h2>
+            </div>
+            <button onClick={addContact} className={cn("flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all", isDark ? "text-cyan-400 hover:bg-cyan-500/10" : "text-cyan-600 hover:bg-cyan-50")}>
+              <Plus className="w-3.5 h-3.5" /> Adicionar
+            </button>
+          </div>
+          <div className="p-6 space-y-4">
+            {contacts.length === 0 && (
+              <p className={cn("text-sm text-center py-4", isDark ? "text-white/20" : "text-gray-400")}>
+                Nenhum contato de emergência. Clique em "Adicionar".
+              </p>
+            )}
+            {contacts.map((c, i) => (
+              <div key={i} className={cn("rounded-xl border p-4 space-y-3", isDark ? "border-white/5 bg-white/[0.02]" : "border-gray-100 bg-gray-50/50")}>
+                <div className="flex items-center justify-between">
+                  <span className={cn("text-xs font-semibold uppercase tracking-wide", isDark ? "text-white/30" : "text-gray-400")}>Contato {i + 1}</span>
+                  <button onClick={() => removeContact(i)} className={cn("p-1 rounded-lg transition-all", isDark ? "text-white/20 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-red-500 hover:bg-red-50")}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className={labelClass}>Nome</Label>
+                    <Input value={c.name} onChange={(e) => setContact(i, "name", e.target.value)} placeholder="Nome completo" className={inputClass} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className={labelClass}>Parentesco</Label>
+                    <Input value={c.contact_relationship} onChange={(e) => setContact(i, "contact_relationship", e.target.value)} placeholder="Mãe, pai, cônjuge..." className={inputClass} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className={labelClass}>Telefone</Label>
+                    <Input value={c.phone} onChange={(e) => setContact(i, "phone", e.target.value)} placeholder="(11) 99999-9999" className={inputClass} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className={labelClass}>WhatsApp</Label>
+                    <Input value={c.whatsapp} onChange={(e) => setContact(i, "whatsapp", e.target.value)} placeholder="(11) 99999-9999" className={inputClass} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Endereço */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5">
+        <div className={sectionCard}>
+          <div className={sectionHeader}>
             <MapPin className="w-4 h-4 text-emerald-400" />
-            <h2 className="font-semibold text-white/80">Endereço</h2>
+            <h2 className={sectionTitle}>Endereço</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">CEP</Label>
+              <Label className={labelClass}>CEP</Label>
               <Input placeholder="00000-000" {...f("zip_code")} className={inputClass} />
             </div>
             <div className="md:col-span-2 space-y-1.5">
-              <Label className="text-white/50 text-sm">Rua</Label>
+              <Label className={labelClass}>Rua</Label>
               <Input {...f("street")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Número</Label>
+              <Label className={labelClass}>Número</Label>
               <Input {...f("number")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Complemento</Label>
+              <Label className={labelClass}>Complemento</Label>
               <Input {...f("complement")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Bairro</Label>
+              <Label className={labelClass}>Bairro</Label>
               <Input {...f("neighborhood")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Cidade</Label>
+              <Label className={labelClass}>Cidade</Label>
               <Input {...f("city")} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Estado</Label>
+              <Label className={labelClass}>Estado (UF)</Label>
               <Input maxLength={2} placeholder="SP" {...f("state")} className={inputClass} />
             </div>
           </div>
         </div>
 
         {/* Histórico médico */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5">
+        <div className={sectionCard}>
+          <div className={sectionHeader}>
             <HeartPulse className="w-4 h-4 text-red-400" />
-            <h2 className="font-semibold text-white/80">Histórico Médico</h2>
+            <h2 className={sectionTitle}>Histórico Médico</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Alergias</Label>
-              <Textarea rows={2} placeholder="Ex: penicilina, látex..." {...f("allergies")} className={`${inputClass} resize-none`} />
+              <Label className={labelClass}>Alergias</Label>
+              <Textarea rows={2} placeholder="Ex: penicilina, látex..." {...f("allergies")} className={cn(inputClass, "resize-none")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Medicamentos em uso</Label>
-              <Textarea rows={2} placeholder="Ex: aspirina 100mg..." {...f("medications")} className={`${inputClass} resize-none`} />
+              <Label className={labelClass}>Medicamentos em uso</Label>
+              <Textarea rows={2} placeholder="Ex: aspirina 100mg..." {...f("medications")} className={cn(inputClass, "resize-none")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Doenças crônicas</Label>
-              <Textarea rows={2} placeholder="Ex: diabetes, hipertensão..." {...f("chronic_diseases")} className={`${inputClass} resize-none`} />
+              <Label className={labelClass}>Doenças crônicas</Label>
+              <Textarea rows={2} placeholder="Ex: diabetes, hipertensão..." {...f("chronic_diseases")} className={cn(inputClass, "resize-none")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Histórico clínico</Label>
-              <Textarea rows={2} {...f("medical_history")} className={`${inputClass} resize-none`} />
+              <Label className={labelClass}>Histórico clínico</Label>
+              <Textarea rows={2} {...f("medical_history")} className={cn(inputClass, "resize-none")} />
             </div>
             <div className="md:col-span-2 space-y-1.5">
-              <Label className="text-white/50 text-sm">Observações gerais</Label>
-              <Textarea rows={2} {...f("observations")} className={`${inputClass} resize-none`} />
+              <Label className={labelClass}>Observações gerais</Label>
+              <Textarea rows={2} {...f("observations")} className={cn(inputClass, "resize-none")} />
             </div>
           </div>
         </div>
       </div>
 
       <div className="flex gap-3 justify-end pb-6">
-        <Button variant="outline" onClick={() => router.back()} className="border-white/10 text-white/50 hover:bg-white/5 rounded-xl">
+        <Button variant="outline" onClick={() => router.back()} className={cn("rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
           Cancelar
         </Button>
-        <Button
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !form.name}
-          className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 border-0 rounded-xl px-6 shadow-lg shadow-cyan-500/20"
-        >
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name}
+          className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 border-0 rounded-xl px-6 shadow-lg shadow-cyan-500/20 text-white">
           {mutation.isPending ? "Salvando..." : "Cadastrar Paciente"}
         </Button>
       </div>

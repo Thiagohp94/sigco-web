@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { LogBookEntry, Material, LogBookActionType } from "@/types";
@@ -14,6 +14,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 const ACTION_CONFIG: Record<LogBookActionType, { label: string; icon: any; color: string }> = {
   sterilization: { label: "Esterilização",      icon: Thermometer,     color: "text-cyan-400 bg-cyan-500/10" },
@@ -29,17 +30,10 @@ const EMPTY_FORM: FormState = { action_type: "sterilization", description: "", m
 
 export default function DiarioPage() {
   const qc = useQueryClient();
-  const [isDark, setIsDark] = useState(true);
+  const isDark = useTheme();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
 
   const { data: entries = [] } = useQuery<LogBookEntry[]>({
     queryKey: ["logbook"],
@@ -231,3 +225,4 @@ export default function DiarioPage() {
     </div>
   );
 }
+                                                 

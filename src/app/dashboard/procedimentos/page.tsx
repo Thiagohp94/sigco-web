@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Procedure, ProcedureMaterial, Material } from "@/types";
@@ -8,31 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, ClipboardList, Edit2, Trash2, Clock, DollarSign, Package, X } from "lucide-react";
+import { Plus, ClipboardList, Edit2, Trash2, Clock, DollarSign, Package, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/hooks/useTheme";
 
 const COLORS = ["#06B6D4", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#3B82F6", "#14B8A6"];
 
 export default function ProcedimentosPage() {
   const qc = useQueryClient();
-  const [isDark, setIsDark] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProc, setEditingProc] = useState<Procedure | null>(null);
   const [selectedProc, setSelectedProc] = useState<Procedure | null>(null);
   const [form, setForm] = useState({ name: "", duration_minutes: 30, price: "", color: "#06B6D4" });
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const [search, setSearch] = useState("");
+  const isDark = useTheme();
 
   const { data: procedures = [] } = useQuery<Procedure[]>({
-    queryKey: ["procedures"],
-    queryFn: () => api.get("/appointments/procedures/list").then((r) => r.data),
+    queryKey: ["procedures", search],
+    queryFn: () => api.get("/appointments/procedures/list", { params: search ? { search } : {} }).then((r) => r.data),
   });
 
   const { data: materials = [] } = useQuery<Material[]>({
@@ -100,6 +95,17 @@ export default function ProcedimentosPage() {
           className="bg-gradient-to-r from-violet-500 to-violet-600 border-0 rounded-xl text-white shadow-lg shadow-violet-500/20">
           <Plus className="w-4 h-4 mr-1.5" />Novo procedimento
         </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative w-64">
+        <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-white/20" : "text-gray-300")} />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar procedimento..."
+          className={cn("pl-9 rounded-xl", isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-white border-gray-200")}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

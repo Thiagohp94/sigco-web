@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -15,6 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { OdontogramView } from "@/components/odontogram/odontogram-view";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
 
 const STATUS_OPTIONS: { value: PatientStatus; label: string; color: string; darkColor: string }[] = [
   { value: "active",          label: "Ativo",                   color: "bg-emerald-50 text-emerald-700 border-emerald-200",   darkColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
@@ -33,15 +34,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
-  const [isDark, setIsDark] = useState(true);
+  const isDark = useTheme();
   const [showStatusPicker, setShowStatusPicker] = useState(false);
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
 
   const { data: patient, isLoading } = useQuery<Patient>({
     queryKey: ["patient", id],
@@ -430,24 +424,4 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                               <button
                                 onClick={() => { if (confirm("Remover este registro da timeline?")) deleteLog.mutate(item.id); }}
                                 className={cn("opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all shrink-0",
-                                  isDark ? "text-white/20 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-red-500 hover:bg-red-50"
-                                )}
-                                title="Remover"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                                  isDark ? "text-white/20 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-red-500 hover:bg

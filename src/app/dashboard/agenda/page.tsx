@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getTheme } from "@/lib/theme";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useTheme } from "@/hooks/useTheme";
 
 type ViewMode = "semana" | "dia" | "mes";
 
@@ -64,8 +65,8 @@ export default function AgendaPage() {
   const [showReschedule, setShowReschedule] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [isDark, setIsDark] = useState(true);
   const [prefillStart, setPrefillStart] = useState("");
+  const isDark = useTheme();
 
   function handleSlotClick(day: Date, hour: number) {
     const d = new Date(day);
@@ -74,13 +75,6 @@ export default function AgendaPage() {
     setPrefillStart(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
     setShowForm(true);
   }
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -545,7 +539,11 @@ function RescheduleModal({ appt, isDark, onClose, onSuccess }: {
       return updated.data;
     },
     onSuccess,
-    onError: () => toast.error("Erro ao reagendar"),
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : "Erro ao reagendar";
+      toast.error(err?.response?.status === 409 ? `⚠️ Conflito de horário: ${msg}` : msg);
+    },
   });
 
   return (
@@ -617,9 +615,19 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
     }).then((r) => r.data),
     onSuccess,
     onError: (err: any) => {
+      const status = err?.response?.status;
       const detail = err?.response?.data?.detail;
-      const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e.msg ?? e).join(", ") : "Erro ao agendar";
-      toast.error(msg);
+      const msg = typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+        ? detail.map((e: any) => e.msg ?? e).join(", ")
+        : "Erro ao agendar";
+      // 409 = conflito de horário — exibe com ícone de alerta
+      if (status === 409) {
+        toast.error(`⚠️ Conflito de horário: ${msg}`);
+      } else {
+        toast.error(msg);
+      }
     },
   });
 

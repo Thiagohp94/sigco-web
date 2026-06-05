@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { ContactLog, ContactType, PatientListItem, PaginatedPatients } from "@/types";
@@ -14,6 +14,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 const CONTACT_TYPES: Record<ContactType, string> = {
   charge: "Cobrança",
@@ -28,7 +29,6 @@ const CHANNELS = ["Telefone", "WhatsApp", "E-mail", "SMS", "Pessoalmente"];
 
 export default function ContatosPage() {
   const qc = useQueryClient();
-  const [isDark, setIsDark] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null);
@@ -36,13 +36,7 @@ export default function ContatosPage() {
   const [form, setForm] = useState<{ contact_type: ContactType; was_successful: boolean; channel: string; notes: string }>({
     contact_type: "confirm", was_successful: false, channel: "WhatsApp", notes: "",
   });
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const isDark = useTheme();
 
   const { data: contacts = [] } = useQuery<ContactLog[]>({
     queryKey: ["contacts", filterPatientId],

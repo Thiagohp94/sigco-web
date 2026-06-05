@@ -1,35 +1,33 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import type { Patient, MedicalRecord } from "@/types";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, FileText, Calendar, Stethoscope } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Calendar, Stethoscope, Edit2 } from "lucide-react";
+import { SkeletonList } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const EMPTY_FORM = { record_date: "", procedure_description: "", evolution: "", observations: "" };
+
 export default function ProntuarioPage({ params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const isDark = useTheme();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ record_date: "", procedure_description: "", evolution: "", observations: "" });
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const { data: patient } = useQuery<Patient>({
     queryKey: ["patient", patientId],
@@ -41,22 +39,43 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
     queryFn: () => api.get(`/patients/${patientId}/records`).then((r) => r.data),
   });
 
-  const createRecord = useMutation({
-    mutationFn: () =>
-      api.post(`/patients/${patientId}/records`, {
+  const saveRecord = useMutation({
+    mutationFn: () => {
+      const payload = {
         patient_id: patientId, ...form,
         procedure_description: form.procedure_description || undefined,
         evolution: form.evolution || undefined,
         observations: form.observations || undefined,
-      }).then((r) => r.data),
+      };
+      if (editingId) {
+        return api.patch(`/patients/${patientId}/records/${editingId}`, payload).then((r) => r.data);
+      }
+      return api.post(`/patients/${patientId}/records`, payload).then((r) => r.data);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["records", patientId] });
-      toast.success("Registro adicionado ao prontuário");
-      setShowForm(false);
-      setForm({ record_date: "", procedure_description: "", evolution: "", observations: "" });
+      toast.success(editingId ? "Registro atualizado!" : "Registro adicionado ao prontuário");
+      closeForm();
     },
     onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Erro ao salvar"),
   });
+
+  function openEdit(r: MedicalRecord) {
+    setEditingId(r.id);
+    setForm({
+      record_date: r.record_date,
+      procedure_description: r.procedure_description ?? "",
+      evolution: r.evolution ?? "",
+      observations: r.observations ?? "",
+    });
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+  }
 
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -88,12 +107,7 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <div className="relative w-8 h-8">
-            <div className="absolute inset-0 rounded-full border-2 border-violet-500/20" />
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-violet-400 animate-spin" />
-          </div>
-        </div>
+        <SkeletonList count={4} />
       ) : records.length === 0 ? (
         <div className={cn("rounded-2xl text-center py-20", cardBg)}>
           <FileText className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-white/10" : "text-gray-300")} />
@@ -126,9 +140,18 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
                         {format(new Date(r.record_date + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </span>
                     </div>
-                    <div className={cn("flex items-center gap-1.5 text-sm", txtMuted)}>
-                      <Stethoscope className="w-3 h-3" />
-                      Dr(a). {r.dentist_name}
+                    <div className="flex items-center gap-2">
+                      <div className={cn("flex items-center gap-1.5 text-sm", txtMuted)}>
+                        <Stethoscope className="w-3 h-3" />
+                        Dr(a). {r.dentist_name}
+                      </div>
+                      <button
+                        onClick={() => openEdit(r)}
+                        className={cn("p-1.5 rounded-lg transition-all", isDark ? "text-white/20 hover:text-violet-400 hover:bg-violet-500/10" : "text-gray-300 hover:text-violet-600 hover:bg-violet-50")}
+                        title="Editar registro"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                   {r.procedure_description && (
@@ -156,10 +179,10 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
         </div>
       )}
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={closeForm}>
         <DialogContent className={cn("max-w-lg rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
           <DialogHeader>
-            <DialogTitle className={txt}>Novo Registro no Prontuário</DialogTitle>
+            <DialogTitle className={txt}>{editingId ? "Editar Registro" : "Novo Registro no Prontuário"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -179,13 +202,13 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
               <Textarea rows={2} placeholder="Observações adicionais..." value={form.observations} onChange={(e) => set("observations", e.target.value)} className={cn(inputCls, "resize-none")} />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowForm(false)}
+              <Button variant="outline" onClick={closeForm}
                 className={cn("rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
                 Cancelar
               </Button>
-              <Button onClick={() => createRecord.mutate()} disabled={createRecord.isPending || !form.record_date}
+              <Button onClick={() => saveRecord.mutate()} disabled={saveRecord.isPending || !form.record_date}
                 className="bg-gradient-to-r from-violet-500 to-violet-600 border-0 rounded-xl shadow-lg shadow-violet-500/20 text-white">
-                {createRecord.isPending ? "Salvando..." : "Salvar"}
+                {saveRecord.isPending ? "Salvando..." : editingId ? "Salvar Alterações" : "Salvar"}
               </Button>
             </div>
           </div>
@@ -194,3 +217,4 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
     </div>
   );
 }
+      

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -11,20 +11,15 @@ import { Search, Plus, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 export default function PacientesPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const isDark = useTheme();
 
   const { data, isLoading } = useQuery<PaginatedPatients>({
     queryKey: ["patients", search, page],
@@ -86,12 +81,7 @@ export default function PacientesPage() {
 
         {/* Table */}
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <div className="relative w-8 h-8">
-              <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20" />
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-400 animate-spin" />
-            </div>
-          </div>
+          <SkeletonList count={8} />
         ) : (
           <>
             <div className="overflow-x-auto">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { ptBR } from "date-fns/locale";
 import type { Appointment } from "@/types";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 const STATUS_CONFIG: Record<string, { label: string; dark: string; light: string }> = {
   scheduled:   { label: "Agendada",       dark: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/20",           light: "bg-cyan-50 text-cyan-700 border border-cyan-200" },
@@ -26,14 +26,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const today = new Date();
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const isDark = useTheme();
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["appointments", "today"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTheme } from "@/hooks/useTheme";
 
 const CONDITIONS: { key: ToothCondition; label: string; color: string }[] = [
   { key: "healthy",     label: "Hígido",      color: "#94a3b8" },
@@ -93,18 +94,11 @@ interface Props {
 }
 
 export function OdontogramView({ entries, patientId }: Props) {
+  const isDark = useTheme();
   const [selected, setSelected] = useState<number | null>(null);
   const [condition, setCondition] = useState<ToothCondition>("healthy");
   const [notes, setNotes] = useState("");
-  const [isDark, setIsDark] = useState(true);
   const qc = useQueryClient();
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
 
   const entryMap: Record<number, OdontogramEntry> = Object.fromEntries(
     entries.map((e) => [e.tooth_number, e])

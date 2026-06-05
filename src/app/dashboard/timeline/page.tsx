@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
@@ -10,6 +10,7 @@ import { Search, Activity, Calendar, Phone, CheckCircle2, XCircle, AlertTriangle
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 const CONTACT_TYPE_LABELS: Record<string, string> = {
   charge: "Cobrança", schedule: "Marcar consulta", confirm: "Confirmar",
@@ -23,22 +24,13 @@ type TimelineEvent =
 
 export default function TimelinePage() {
   const searchParams = useSearchParams();
-  const [isDark, setIsDark] = useState(true);
+  const isDark = useTheme();
   const [search, setSearch] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(() => {
-    // Pre-select patient from URL query params (deep-link from patient page)
-    const pid = searchParams?.get("patientId");
-    const pname = searchParams?.get("patientName");
-    if (pid && pname) return { id: pid, name: pname, cpf: null, phone_primary: null, email: null, status: "active", is_active: true };
-    return null;
-  });
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const pid = searchParams?.get("patientId");
+  const pname = searchParams?.get("patientName");
+  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(
+    pid && pname ? { id: pid, name: pname, cpf: null, phone_primary: null, email: null, status: "active", is_active: true } : null
+  );
 
   const { data: searchResult } = useQuery<PaginatedPatients>({
     queryKey: ["patients-search", search],
@@ -264,15 +256,4 @@ export default function TimelinePage() {
           <Activity className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p>Nenhum registro encontrado para este paciente.</p>
         </div>
-      )}
-
-      {!selectedPatient && (
-        <div className={cn("text-center py-20", isDark ? "text-white/20" : "text-gray-300")}>
-          <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-base">Selecione um paciente para ver a timeline</p>
-          <p className="text-sm mt-1 opacity-60">Consultas, contatos e ações agrupados cronologicamente</p>
-        </div>
-      )}
-    </div>
-  );
-}
+     

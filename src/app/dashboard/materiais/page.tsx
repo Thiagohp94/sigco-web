@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Material } from "@/types";
@@ -9,32 +9,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Package, Edit2, AlertTriangle, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Plus, Package, Edit2, AlertTriangle, ArrowUp, ArrowDown, Minus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 
 const UNITS = ["un", "cx", "ml", "mg", "g", "L", "kg", "m", "rolo", "par"];
 
 export default function MateriaisPage() {
   const qc = useQueryClient();
-  const [isDark, setIsDark] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingMat, setEditingMat] = useState<Material | null>(null);
   const [showStock, setShowStock] = useState<Material | null>(null);
   const [stockQty, setStockQty] = useState("");
   const [form, setForm] = useState({ name: "", description: "", unit: "un", min_stock: 0 });
   const [filter, setFilter] = useState<"all" | "low" | "ok">("all");
-
-  useEffect(() => {
-    setIsDark(!document.documentElement.classList.contains("light"));
-    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+  const [search, setSearch] = useState("");
+  const isDark = useTheme();
 
   const { data: materials = [] } = useQuery<Material[]>({
-    queryKey: ["materials"],
-    queryFn: () => api.get("/materials").then((r) => r.data),
+    queryKey: ["materials", search],
+    queryFn: () => api.get("/materials", { params: search ? { search } : {} }).then((r) => r.data),
   });
 
   const saveMutation = useMutation({
@@ -91,6 +86,19 @@ export default function MateriaisPage() {
             className="bg-gradient-to-r from-emerald-500 to-emerald-600 border-0 rounded-xl text-white shadow-lg shadow-emerald-500/20">
             <Plus className="w-4 h-4 mr-1.5" />Novo material
           </Button>
+        </div>
+      </div>
+
+      {/* Search + Filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative">
+          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-white/20" : "text-gray-300")} />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar material..."
+            className={cn("pl-9 w-56 rounded-xl", isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-white border-gray-200")}
+          />
         </div>
       </div>
 
