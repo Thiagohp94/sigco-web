@@ -424,4 +424,24 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                               <button
                                 onClick={() => { if (confirm("Remover este registro da timeline?")) deleteLog.mutate(item.id); }}
                                 className={cn("opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all shrink-0",
-                                  isDark ? "text-white/20 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-red-500 hover:bg
+                                  isDark ? "text-white/20 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-red-500 hover:bg-red-50"
+                                )}
+                                title="Remover"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
