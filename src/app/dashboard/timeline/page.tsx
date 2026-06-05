@@ -256,6 +256,8 @@ export default function TimelinePage() {
           <Activity className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p>Nenhum registro encontrado para este paciente.</p>
         </div>
+      )}
+
       {!selectedPatient && (
         <div className={cn("text-center py-20", isDark ? "text-white/20" : "text-gray-300")}>
           <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
