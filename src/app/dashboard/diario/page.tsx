@@ -9,28 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, BookOpen, Thermometer, ArrowDownToLine, ArrowUpFromLine, Sparkles, Wrench, MoreHorizontal } from "lucide-react";
+import { Plus, BookOpen, Thermometer, ArrowDownToLine, ArrowUpFromLine, Sparkles, Wrench, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const ACTION_CONFIG: Record<LogBookActionType, { label: string; icon: any; color: string }> = {
-  sterilization: { label: "Esterilização",  icon: Thermometer,     color: "text-cyan-400 bg-cyan-500/10" },
-  stock_in:      { label: "Entrada de estoque", icon: ArrowDownToLine, color: "text-emerald-400 bg-emerald-500/10" },
-  stock_out:     { label: "Saída de estoque",   icon: ArrowUpFromLine, color: "text-amber-400 bg-amber-500/10" },
-  cleaning:      { label: "Limpeza",            icon: Sparkles,        color: "text-violet-400 bg-violet-500/10" },
-  maintenance:   { label: "Manutenção",         icon: Wrench,          color: "text-orange-400 bg-orange-500/10" },
-  other:         { label: "Outro",              icon: MoreHorizontal,  color: "text-gray-400 bg-gray-500/10" },
+  sterilization: { label: "Esterilização",      icon: Thermometer,     color: "text-cyan-400 bg-cyan-500/10" },
+  stock_in:      { label: "Entrada de estoque",  icon: ArrowDownToLine, color: "text-emerald-400 bg-emerald-500/10" },
+  stock_out:     { label: "Saída de estoque",     icon: ArrowUpFromLine, color: "text-amber-400 bg-amber-500/10" },
+  cleaning:      { label: "Limpeza",              icon: Sparkles,        color: "text-violet-400 bg-violet-500/10" },
+  maintenance:   { label: "Manutenção",           icon: Wrench,          color: "text-orange-400 bg-orange-500/10" },
+  other:         { label: "Outro",                icon: MoreHorizontal,  color: "text-gray-400 bg-gray-500/10" },
 };
+
+type FormState = { action_type: LogBookActionType; description: string; material_id: string; quantity: string };
+const EMPTY_FORM: FormState = { action_type: "sterilization", description: "", material_id: "", quantity: "" };
 
 export default function DiarioPage() {
   const qc = useQueryClient();
   const [isDark, setIsDark] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<{ action_type: LogBookActionType; description: string; material_id: string; quantity: string }>({
-    action_type: "sterilization", description: "", material_id: "", quantity: "",
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   useEffect(() => {
     setIsDark(!document.documentElement.classList.contains("light"));
@@ -50,25 +52,55 @@ export default function DiarioPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => api.post("/logs/logbook", {
-      action_type: form.action_type,
-      description: form.description,
-      material_id: form.material_id || undefined,
-      quantity: form.quantity ? parseFloat(form.quantity) : undefined,
-    }).then((r) => r.data),
+    mutationFn: () => {
+      const payload = {
+        action_type: form.action_type,
+        description: form.description,
+        material_id: form.material_id || undefined,
+        quantity: form.quantity ? parseFloat(form.quantity) : undefined,
+      };
+      if (editingId) {
+        return api.patch(`/logs/logbook/${editingId}`, payload).then((r) => r.data);
+      }
+      return api.post("/logs/logbook", payload).then((r) => r.data);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["logbook"] });
-      setShowForm(false);
-      setForm({ action_type: "sterilization", description: "", material_id: "", quantity: "" });
-      toast.success("Registro adicionado!");
+      closeForm();
+      toast.success(editingId ? "Registro atualizado!" : "Registro adicionado!");
     },
-    onError: () => toast.error("Erro ao registrar"),
+    onError: () => toast.error("Erro ao salvar"),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/logs/logbook/${id}`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["logbook"] });
+      toast.success("Registro removido");
+    },
+    onError: () => toast.error("Erro ao remover"),
+  });
+
+  function openEdit(entry: LogBookEntry) {
+    setEditingId(entry.id);
+    setForm({
+      action_type: entry.action_type,
+      description: entry.description,
+      material_id: entry.material_id ?? "",
+      quantity: entry.quantity ? String(entry.quantity) : "",
+    });
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+  }
 
   const labelCls = cn("text-sm font-medium", isDark ? "text-white/60" : "text-gray-600");
   const inputCls = cn("rounded-xl", isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-gray-50 border-gray-200");
 
-  // Group entries by date
   const grouped: Record<string, LogBookEntry[]> = {};
   entries.forEach((e) => {
     const dateKey = format(parseISO(e.created_at), "yyyy-MM-dd");
@@ -85,19 +117,19 @@ export default function DiarioPage() {
           </div>
           Diário de Bordo
         </h1>
-        <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-indigo-500 to-indigo-600 border-0 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+        <Button onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setShowForm(true); }}
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 border-0 rounded-xl text-white shadow-lg shadow-indigo-500/20">
           <Plus className="w-4 h-4 mr-1.5" />Novo registro
         </Button>
       </div>
 
-      {/* Entries grouped by date */}
-      {Object.keys(grouped).sort((a, b) => b.localeCompare(a)).length === 0 && (
+      {Object.keys(grouped).length === 0 && (
         <p className={cn("text-center py-16", isDark ? "text-white/20" : "text-gray-400")}>Nenhum registro ainda.</p>
       )}
 
       {Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map((dateKey) => (
         <div key={dateKey} className="space-y-2">
-          <p className={cn("text-sm font-semibold capitalize px-1", isDark ? "text-white/30" : "text-gray-400")}>
+          <p className={cn("text-sm font-semibold capitalize px-1", isDark ? "text-white/30" : "text-gray-500")}>
             {format(new Date(dateKey + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
           <div className="space-y-2">
@@ -105,19 +137,30 @@ export default function DiarioPage() {
               const cfg = ACTION_CONFIG[entry.action_type];
               const Icon = cfg.icon;
               return (
-                <div key={entry.id} className={cn("rounded-2xl border p-4 flex items-start gap-4", isDark ? "glass-card border-white/5" : "bg-white border-gray-200 shadow-sm")}>
+                <div key={entry.id} className={cn("rounded-2xl border p-4 flex items-start gap-4 group", isDark ? "glass-card border-white/5" : "bg-white border-gray-200 shadow-sm")}>
                   <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm", cfg.color)}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className={cn("font-medium text-sm", isDark ? "text-white/80" : "text-gray-700")}>{cfg.label}</span>
-                      <span className={cn("text-xs shrink-0", isDark ? "text-white/20" : "text-gray-400")}>{format(parseISO(entry.created_at), "HH:mm")}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn("text-xs shrink-0", isDark ? "text-white/20" : "text-gray-400")}>{format(parseISO(entry.created_at), "HH:mm")}</span>
+                        {/* Edit/Delete buttons — always visible */}
+                        <button onClick={() => openEdit(entry)}
+                          className={cn("p-1 rounded-lg transition-all", isDark ? "text-white/30 hover:text-cyan-400 hover:bg-cyan-500/10" : "text-gray-400 hover:text-cyan-600 hover:bg-cyan-50")}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { if (confirm("Remover este registro?")) deleteMutation.mutate(entry.id); }}
+                          className={cn("p-1 rounded-lg transition-all", isDark ? "text-white/30 hover:text-red-400 hover:bg-red-500/10" : "text-gray-400 hover:text-red-500 hover:bg-red-50")}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <p className={cn("text-sm mt-0.5", isDark ? "text-white/50" : "text-gray-600")}>{entry.description}</p>
                     {entry.material_name && (
                       <p className={cn("text-xs mt-1", isDark ? "text-white/30" : "text-gray-400")}>
-                        Material: {entry.material_name}{entry.quantity ? ` · ${entry.quantity}` : ""}
+                        Material: {entry.material_name}{entry.quantity ? ` · Qtd: ${entry.quantity}` : ""}
                       </p>
                     )}
                     {entry.user_name && (
@@ -131,9 +174,9 @@ export default function DiarioPage() {
         </div>
       ))}
 
-      <Dialog open={showForm} onOpenChange={() => setShowForm(false)}>
-        <DialogContent className={cn("max-w-sm rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
-          <DialogHeader><DialogTitle>Novo registro</DialogTitle></DialogHeader>
+      <Dialog open={showForm} onOpenChange={closeForm}>
+        <DialogContent className={cn("max-w-md rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
+          <DialogHeader><DialogTitle>{editingId ? "Editar registro" : "Novo registro"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className={labelCls}>Tipo de ação</Label>
@@ -177,9 +220,9 @@ export default function DiarioPage() {
               </div>
             )}
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowForm(false)}>Cancelar</Button>
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={closeForm}>Cancelar</Button>
               <Button className="flex-1 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 border-0 text-white" disabled={saveMutation.isPending || !form.description} onClick={() => saveMutation.mutate()}>
-                {saveMutation.isPending ? "Registrando…" : "Registrar"}
+                {saveMutation.isPending ? "Salvando…" : editingId ? "Salvar alterações" : "Registrar"}
               </Button>
             </div>
           </div>

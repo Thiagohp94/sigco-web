@@ -120,42 +120,42 @@
 
 /* ── Light Theme ──────────────────────────────────────────── */
 .light {
-  --background: oklch(0.97 0.005 240);
-  --foreground: oklch(0.18 0.02 260);
-  --card: oklch(1 0 0 / 80%);
-  --card-foreground: oklch(0.18 0.02 260);
-  --popover: oklch(1 0 0 / 95%);
-  --popover-foreground: oklch(0.18 0.02 260);
-  --primary: oklch(0.55 0.15 195);
-  --primary-foreground: oklch(0.98 0.01 260);
-  --secondary: oklch(0.92 0.01 240);
-  --secondary-foreground: oklch(0.25 0.02 260);
-  --muted: oklch(0.93 0.01 240);
-  --muted-foreground: oklch(0.45 0.02 260);
-  --accent: oklch(0.55 0.18 290);
-  --accent-foreground: oklch(0.98 0.01 260);
+  --background: oklch(0.975 0 0);
+  --foreground: oklch(0.14 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.14 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.14 0 0);
+  --primary: oklch(0.52 0.14 195);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.20 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.40 0 0);
+  --accent: oklch(0.52 0.17 290);
+  --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0 0 0 / 10%);
-  --input: oklch(0 0 0 / 8%);
-  --ring: oklch(0.55 0.15 195);
-  --chart-1: oklch(0.55 0.15 195);
-  --chart-2: oklch(0.55 0.20 290);
-  --chart-3: oklch(0.50 0.18 155);
-  --chart-4: oklch(0.55 0.16 50);
-  --chart-5: oklch(0.52 0.22 330);
-  --sidebar: oklch(1 0 0 / 90%);
-  --sidebar-foreground: oklch(0.25 0.02 260);
-  --sidebar-primary: oklch(0.55 0.15 195);
-  --sidebar-primary-foreground: oklch(0.98 0.01 260);
-  --sidebar-accent: oklch(0.92 0.01 240);
-  --sidebar-accent-foreground: oklch(0.25 0.02 260);
-  --sidebar-border: oklch(0 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0.15 195);
+  --border: oklch(0.90 0 0);
+  --input: oklch(0.93 0 0);
+  --ring: oklch(0.52 0.14 195);
+  --chart-1: oklch(0.52 0.14 195);
+  --chart-2: oklch(0.52 0.17 290);
+  --chart-3: oklch(0.48 0.16 155);
+  --chart-4: oklch(0.52 0.15 50);
+  --chart-5: oklch(0.50 0.20 330);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.20 0 0);
+  --sidebar-primary: oklch(0.52 0.14 195);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent-foreground: oklch(0.20 0 0);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0.52 0.14 195);
 }
 
 /* light mode body bg */
 .light body {
-  background-color: oklch(0.97 0.005 240);
+  background-color: oklch(0.965 0 0);
 }
 
 @layer base {
@@ -167,6 +167,46 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Cursor mãozinha em todos os elementos clicáveis */
+  button,
+  [role="button"],
+  a,
+  label[for],
+  select,
+  [tabindex]:not([tabindex="-1"]),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="submit"],
+  input[type="reset"],
+  summary {
+    cursor: pointer;
+  }
+
+  /* Manter cursor padrão em inputs de texto e textarea */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea {
+    cursor: text;
+  }
+
+  /* Disabled continua com not-allowed */
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
   }
 }
 
@@ -236,30 +276,50 @@
 
   /* Light mode overrides */
   .light .glass {
-    background: rgba(255, 255, 255, 0.70);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(0, 0, 0, 0.07);
-  }
-
-  .light .glass-strong {
     background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-
-  .light .glass-card {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
     border: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  .light .glass-card:hover {
+  .light .glass-strong {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .light .glass-card {
     background: rgba(255, 255, 255, 0.90);
-    border-color: rgba(6, 182, 212, 0.2);
-    box-shadow: 0 8px 32px rgba(6, 182, 212, 0.10);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  .light .glass-card:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(6, 182, 212, 0.25);
+    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .light .glow-cyan {
+    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.10);
+  }
+
+  .light .glow-cyan-strong {
+    box-shadow: 0 4px 24px rgba(6, 182, 212, 0.15);
+  }
+
+  .light .text-glow-cyan {
+    text-shadow: none;
+  }
+
+  .light .gradient-mesh {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
   }
 }
 
@@ -314,4 +374,11 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
 }

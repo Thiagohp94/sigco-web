@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -14,6 +14,7 @@ import { ArrowLeft, Plus, FileText, Calendar, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function ProntuarioPage({ params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = use(params);
@@ -21,6 +22,14 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ record_date: "", procedure_description: "", evolution: "", observations: "" });
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    setIsDark(!document.documentElement.classList.contains("light"));
+    const obs = new MutationObserver(() => setIsDark(!document.documentElement.classList.contains("light")));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   const { data: patient } = useQuery<Patient>({
     queryKey: ["patient", patientId],
@@ -35,8 +44,7 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
   const createRecord = useMutation({
     mutationFn: () =>
       api.post(`/patients/${patientId}/records`, {
-        patient_id: patientId,
-        ...form,
+        patient_id: patientId, ...form,
         procedure_description: form.procedure_description || undefined,
         evolution: form.evolution || undefined,
         observations: form.observations || undefined,
@@ -52,25 +60,29 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
 
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
 
-  const inputClass = "bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:border-cyan-500/50 focus:ring-cyan-500/20";
+  const txt = isDark ? "text-white" : "text-gray-900";
+  const txtSoft = isDark ? "text-white/60" : "text-gray-700";
+  const txtMuted = isDark ? "text-white/30" : "text-gray-500";
+  const border = isDark ? "border-white/5" : "border-gray-100";
+  const cardBg = isDark ? "glass-card" : "bg-white border border-gray-100 shadow-sm";
+  const inputCls = cn("rounded-xl", isDark ? "bg-white/5 border-white/10 text-white placeholder:text-white/20" : "bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400");
+  const labelCls = cn("text-sm", isDark ? "text-white/50" : "text-gray-600");
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+        <button onClick={() => router.back()} className={cn("p-2 rounded-xl transition-all", isDark ? "hover:bg-white/5 text-white/40 hover:text-white" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700")}>
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className={cn("text-3xl font-bold flex items-center gap-3", txt)}>
             <FileText className="w-7 h-7 text-violet-400" />
             Prontuário
           </h1>
-          {patient && <p className="text-white/30 text-sm mt-0.5">{patient.name} · CPF: {patient.cpf ?? "—"}</p>}
+          {patient && <p className={cn("text-sm mt-0.5", txtMuted)}>{patient.name} · CPF: {patient.cpf ?? "—"}</p>}
         </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          className="bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-400 hover:to-violet-500 border-0 rounded-xl shadow-lg shadow-violet-500/20"
-        >
+        <Button onClick={() => setShowForm(true)}
+          className="bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-400 hover:to-violet-500 border-0 rounded-xl shadow-lg shadow-violet-500/20 text-white">
           <Plus className="w-4 h-4 mr-2" /> Novo Registro
         </Button>
       </div>
@@ -83,61 +95,58 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
           </div>
         </div>
       ) : records.length === 0 ? (
-        <div className="glass-card rounded-2xl text-center py-20">
-          <FileText className="w-12 h-12 mx-auto mb-4 text-white/10" />
-          <p className="text-white/30 mb-4">Nenhum registro no prontuário.</p>
+        <div className={cn("rounded-2xl text-center py-20", cardBg)}>
+          <FileText className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-white/10" : "text-gray-300")} />
+          <p className={cn("mb-4", txtMuted)}>Nenhum registro no prontuário.</p>
           <Button variant="outline" onClick={() => setShowForm(true)}
-            className="border-violet-500/20 text-violet-400 hover:bg-violet-500/10 rounded-xl">
+            className={cn("rounded-xl", isDark ? "border-violet-500/20 text-violet-400 hover:bg-violet-500/10" : "border-violet-200 text-violet-600 hover:bg-violet-50")}>
             Criar primeiro registro
           </Button>
         </div>
       ) : (
         <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-[19px] top-4 bottom-4 w-px bg-gradient-to-b from-violet-500/30 via-cyan-500/10 to-transparent" />
+          <div className={cn("absolute left-[19px] top-4 bottom-4 w-px", isDark ? "bg-gradient-to-b from-violet-500/30 via-cyan-500/10 to-transparent" : "bg-gradient-to-b from-violet-300 via-gray-200 to-transparent")} />
 
           <div className="space-y-4">
             {records.map((r, i) => (
               <div key={r.id} className="flex gap-4">
-                {/* Timeline dot */}
                 <div className="relative flex-shrink-0 mt-5">
-                  <div className={`w-[10px] h-[10px] rounded-full border-2 ${
+                  <div className={cn("w-[10px] h-[10px] rounded-full border-2",
                     i === 0
                       ? "border-violet-400 bg-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.4)]"
-                      : "border-white/15 bg-white/5"
-                  }`} />
+                      : isDark ? "border-white/15 bg-white/5" : "border-gray-300 bg-gray-200"
+                  )} />
                 </div>
 
-                {/* Card */}
-                <div className="flex-1 glass-card rounded-xl p-5 space-y-3 hover:bg-white/[0.06] transition-all">
+                <div className={cn("flex-1 rounded-xl p-5 space-y-3 transition-all", cardBg)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-cyan-400/50" />
-                      <span className="font-semibold text-white/70">
+                      <Calendar className={cn("w-3.5 h-3.5", isDark ? "text-cyan-400/50" : "text-cyan-500")} />
+                      <span className={cn("font-semibold", txtSoft)}>
                         {format(new Date(r.record_date + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm text-white/20">
+                    <div className={cn("flex items-center gap-1.5 text-sm", txtMuted)}>
                       <Stethoscope className="w-3 h-3" />
                       Dr(a). {r.dentist_name}
                     </div>
                   </div>
                   {r.procedure_description && (
                     <div>
-                      <p className="text-[10px] font-semibold text-cyan-400/40 uppercase tracking-widest mb-0.5">Procedimento</p>
-                      <p className="text-sm text-white/60">{r.procedure_description}</p>
+                      <p className={cn("text-[10px] font-semibold uppercase tracking-widest mb-0.5", isDark ? "text-cyan-400/40" : "text-cyan-700")}>Procedimento</p>
+                      <p className={cn("text-sm", txtSoft)}>{r.procedure_description}</p>
                     </div>
                   )}
                   {r.evolution && (
                     <div>
-                      <p className="text-[10px] font-semibold text-violet-400/40 uppercase tracking-widest mb-0.5">Evolução</p>
-                      <p className="text-sm text-white/60">{r.evolution}</p>
+                      <p className={cn("text-[10px] font-semibold uppercase tracking-widest mb-0.5", isDark ? "text-violet-400/40" : "text-violet-700")}>Evolução</p>
+                      <p className={cn("text-sm", txtSoft)}>{r.evolution}</p>
                     </div>
                   )}
                   {r.observations && (
                     <div>
-                      <p className="text-[10px] font-semibold text-white/15 uppercase tracking-widest mb-0.5">Observações</p>
-                      <p className="text-sm text-white/30 italic">{r.observations}</p>
+                      <p className={cn("text-[10px] font-semibold uppercase tracking-widest mb-0.5", txtMuted)}>Observações</p>
+                      <p className={cn("text-sm italic", txtMuted)}>{r.observations}</p>
                     </div>
                   )}
                 </div>
@@ -148,31 +157,34 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
       )}
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="glass-strong rounded-2xl border-white/10 text-white">
+        <DialogContent className={cn("max-w-lg rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
           <DialogHeader>
-            <DialogTitle className="text-white">Novo Registro no Prontuário</DialogTitle>
+            <DialogTitle className={txt}>Novo Registro no Prontuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Data da Consulta</Label>
-              <Input type="date" value={form.record_date} onChange={(e) => set("record_date", e.target.value)} className={inputClass} />
+              <Label className={labelCls}>Data da Consulta</Label>
+              <Input type="date" value={form.record_date} onChange={(e) => set("record_date", e.target.value)} className={inputCls} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Procedimento Realizado</Label>
-              <Textarea rows={2} placeholder="Descreva o procedimento..." value={form.procedure_description} onChange={(e) => set("procedure_description", e.target.value)} className={`${inputClass} resize-none`} />
+              <Label className={labelCls}>Procedimento Realizado</Label>
+              <Textarea rows={2} placeholder="Descreva o procedimento..." value={form.procedure_description} onChange={(e) => set("procedure_description", e.target.value)} className={cn(inputCls, "resize-none")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Evolução Clínica</Label>
-              <Textarea rows={3} placeholder="Evolução do quadro clínico..." value={form.evolution} onChange={(e) => set("evolution", e.target.value)} className={`${inputClass} resize-none`} />
+              <Label className={labelCls}>Evolução Clínica</Label>
+              <Textarea rows={3} placeholder="Evolução do quadro clínico..." value={form.evolution} onChange={(e) => set("evolution", e.target.value)} className={cn(inputCls, "resize-none")} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/50 text-sm">Observações</Label>
-              <Textarea rows={2} placeholder="Observações adicionais..." value={form.observations} onChange={(e) => set("observations", e.target.value)} className={`${inputClass} resize-none`} />
+              <Label className={labelCls}>Observações</Label>
+              <Textarea rows={2} placeholder="Observações adicionais..." value={form.observations} onChange={(e) => set("observations", e.target.value)} className={cn(inputCls, "resize-none")} />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowForm(false)} className="border-white/10 text-white/50 hover:bg-white/5 rounded-xl">Cancelar</Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}
+                className={cn("rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                Cancelar
+              </Button>
               <Button onClick={() => createRecord.mutate()} disabled={createRecord.isPending || !form.record_date}
-                className="bg-gradient-to-r from-violet-500 to-violet-600 border-0 rounded-xl shadow-lg shadow-violet-500/20">
+                className="bg-gradient-to-r from-violet-500 to-violet-600 border-0 rounded-xl shadow-lg shadow-violet-500/20 text-white">
                 {createRecord.isPending ? "Salvando..." : "Salvar"}
               </Button>
             </div>

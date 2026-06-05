@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 import type { Appointment, AppointmentLog, ContactLog, PatientListItem, PaginatedPatients } from "@/types";
 import { Input } from "@/components/ui/input";
@@ -21,9 +22,16 @@ type TimelineEvent =
   | { type: "contact"; date: string; data: ContactLog };
 
 export default function TimelinePage() {
+  const searchParams = useSearchParams();
   const [isDark, setIsDark] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(() => {
+    // Pre-select patient from URL query params (deep-link from patient page)
+    const pid = searchParams?.get("patientId");
+    const pname = searchParams?.get("patientName");
+    if (pid && pname) return { id: pid, name: pname, cpf: null, phone_primary: null, email: null, status: "active", is_active: true };
+    return null;
+  });
 
   useEffect(() => {
     setIsDark(!document.documentElement.classList.contains("light"));

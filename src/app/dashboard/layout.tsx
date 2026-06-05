@@ -4,7 +4,7 @@ import { AuthGuard } from "@/components/layout/auth-guard";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <div className="flex h-screen overflow-hidden bg-[#0a0e1a]">
+      <div className="flex h-screen overflow-hidden bg-[#0a0e1a] light:bg-[var(--background)]">
         {/* Ambient gradient mesh */}
         <div className="fixed inset-0 pointer-events-none gradient-mesh" />
         <div className="fixed top-0 left-1/3 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />

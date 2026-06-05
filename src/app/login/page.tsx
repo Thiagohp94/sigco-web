@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/lib/auth";
-import { Stethoscope, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ToothLogo } from "@/components/icons/tooth-logo";
 
 const schema = z.object({
   login: z.string().min(1, "Informe seu e-mail ou CPF"),
@@ -32,8 +33,15 @@ export default function LoginPage() {
     try {
       await login(data.login, data.password);
       router.push("/dashboard");
-    } catch {
-      toast.error("Credenciais inválidas. Verifique seu e-mail/CPF e senha.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg === "NETWORK_ERROR") {
+        toast.error("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
+      } else if (msg === "INVALID_CREDENTIALS") {
+        toast.error("Credenciais inválidas. Verifique seu e-mail/CPF e senha.");
+      } else {
+        toast.error(`Erro no servidor: ${msg || "tente novamente"}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -61,8 +69,8 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="relative mb-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center glow-cyan-strong">
-                <Stethoscope className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center glow-cyan-strong text-white">
+                <ToothLogo size={36} />
               </div>
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-cyan-400/20 to-violet-400/20 blur-lg -z-10" />
             </div>

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Calendar, Users, LayoutDashboard, LogOut, Stethoscope, ChevronRight,
+  Calendar, Users, LayoutDashboard, LogOut, ChevronRight,
   Package, ClipboardList, DoorOpen, BookOpen, Phone, Sun, Moon, RefreshCw,
   Activity, ChevronDown,
 } from "lucide-react";
+import { ToothLogo } from "@/components/icons/tooth-logo";
 import { logout } from "@/lib/auth";
 import { useAuthStore } from "@/store/auth";
 import { useState, useEffect } from "react";
@@ -71,8 +72,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className={cn("h-20 flex items-center gap-3 px-6 border-b", isDark ? "border-white/5" : "border-gray-100")}>
         <div className="relative">
-          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Stethoscope className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white">
+            <ToothLogo size={22} />
           </div>
           <div className="absolute -inset-0.5 rounded-xl bg-cyan-400/20 blur-md -z-10" />
         </div>

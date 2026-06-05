@@ -21,6 +21,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getTheme } from "@/lib/theme";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 type ViewMode = "semana" | "dia" | "mes";
 
@@ -64,6 +65,15 @@ export default function AgendaPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [isDark, setIsDark] = useState(true);
+  const [prefillStart, setPrefillStart] = useState("");
+
+  function handleSlotClick(day: Date, hour: number) {
+    const d = new Date(day);
+    d.setHours(hour, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setPrefillStart(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+    setShowForm(true);
+  }
 
   useEffect(() => {
     setIsDark(!document.documentElement.classList.contains("light"));
@@ -213,8 +223,8 @@ export default function AgendaPage() {
 
       {/* Calendar */}
       <div className={cn("rounded-2xl overflow-hidden border", isDark ? "glass-card border-white/5" : "bg-white border-gray-200 shadow-sm")}>
-        {view === "semana" && <WeekView days={weekDays} hours={HOURS} getAppts={getAppts} onSelect={setSelectedAppt} isDark={isDark} />}
-        {view === "dia"    && <DayView day={currentDate} hours={HOURS} getAppts={getAppts} onSelect={setSelectedAppt} isDark={isDark} />}
+        {view === "semana" && <WeekView days={weekDays} hours={HOURS} getAppts={getAppts} onSelect={setSelectedAppt} onSlotClick={handleSlotClick} isDark={isDark} />}
+        {view === "dia"    && <DayView day={currentDate} hours={HOURS} getAppts={getAppts} onSelect={setSelectedAppt} onSlotClick={handleSlotClick} isDark={isDark} />}
         {view === "mes"    && <MonthView days={allMonthDays} currentDate={currentDate} getAppts={getAppts} onSelect={setSelectedAppt} onDayClick={(day) => { setCurrentDate(day); setView("dia"); }} isDark={isDark} />}
       </div>
 
@@ -351,9 +361,10 @@ export default function AgendaPage() {
       )}
 
       <NewAppointmentForm
-        open={showForm} onClose={() => setShowForm(false)}
+        open={showForm} onClose={() => { setShowForm(false); setPrefillStart(""); }}
         procedures={procedures} rooms={rooms} dentists={dentists}
         isDark={isDark}
+        prefillStart={prefillStart}
         onSuccess={(appt: Appointment) => {
           qc.invalidateQueries({ queryKey: ["appointments"] });
           setShowForm(false);
@@ -365,10 +376,11 @@ export default function AgendaPage() {
 }
 
 /* ─── Week View ──────────────────────────────────────────────── */
-function WeekView({ days, hours, getAppts, onSelect, isDark }: {
+function WeekView({ days, hours, getAppts, onSelect, onSlotClick, isDark }: {
   days: Date[]; hours: number[];
   getAppts: (d: Date, h: number) => Appointment[];
   onSelect: (a: Appointment) => void;
+  onSlotClick: (day: Date, hour: number) => void;
   isDark: boolean;
 }) {
   const border = isDark ? "border-white/[0.04]" : "border-gray-100";
@@ -394,11 +406,13 @@ function WeekView({ days, hours, getAppts, onSelect, isDark }: {
             {days.map((d) => {
               const appts = getAppts(d, h);
               return (
-                <div key={d.toISOString()} className={cn("border-l p-1 space-y-0.5 transition-colors", border, isSameDay(d, new Date()) ? isDark ? "bg-cyan-500/[0.015]" : "bg-cyan-50/20" : isDark ? "hover:bg-white/[0.01]" : "hover:bg-gray-50/50")}>
+                <div key={d.toISOString()}
+                  onClick={() => onSlotClick(d, h)}
+                  className={cn("border-l p-1 space-y-0.5 transition-colors cursor-pointer", border, isSameDay(d, new Date()) ? isDark ? "bg-cyan-500/[0.015]" : "bg-cyan-50/20" : isDark ? "hover:bg-white/[0.02]" : "hover:bg-cyan-50/30")}>
                   {appts.map((a) => {
                     const cfg = STATUS_CONFIG[a.status];
                     return (
-                      <button key={a.id} onClick={() => onSelect(a)}
+                      <button key={a.id} onClick={(e) => { e.stopPropagation(); onSelect(a); }}
                         className={cn("w-full text-left text-[11px] rounded-lg border-l-2 px-2 py-1 truncate leading-tight transition-all hover:scale-[1.02] hover:shadow-md", isDark ? cfg.dark : cfg.light)}>
                         <span className="font-semibold">{format(parseISO(a.start_time), "HH:mm")}</span>
                         {" "}{a.patient_name}
@@ -417,10 +431,11 @@ function WeekView({ days, hours, getAppts, onSelect, isDark }: {
 }
 
 /* ─── Day View ───────────────────────────────────────────────── */
-function DayView({ day, hours, getAppts, onSelect, isDark }: {
+function DayView({ day, hours, getAppts, onSelect, onSlotClick, isDark }: {
   day: Date; hours: number[];
   getAppts: (d: Date, h: number) => Appointment[];
   onSelect: (a: Appointment) => void;
+  onSlotClick: (day: Date, hour: number) => void;
   isDark: boolean;
 }) {
   const border = isDark ? "border-white/[0.04]" : "border-gray-100";
@@ -436,11 +451,12 @@ function DayView({ day, hours, getAppts, onSelect, isDark }: {
             <div className={cn("w-16 shrink-0 text-right pr-3 pt-2 font-mono text-xs", isDark ? "text-white/15" : "text-gray-300")}>
               {String(h).padStart(2, "0")}:00
             </div>
-            <div className={cn("flex-1 p-1.5 space-y-1 border-l", border)}>
+            <div onClick={() => onSlotClick(day, h)}
+              className={cn("flex-1 p-1.5 space-y-1 border-l cursor-pointer", border, isDark ? "hover:bg-white/[0.02]" : "hover:bg-cyan-50/30")}>
               {appts.map((a) => {
                 const cfg = STATUS_CONFIG[a.status];
                 return (
-                  <button key={a.id} onClick={() => onSelect(a)}
+                  <button key={a.id} onClick={(e) => { e.stopPropagation(); onSelect(a); }}
                     className={cn("w-full text-left text-sm rounded-xl border-l-4 px-3 py-2 transition-all hover:shadow-md", isDark ? cfg.dark : cfg.light)}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold">{format(parseISO(a.start_time), "HH:mm")} – {format(parseISO(a.end_time), "HH:mm")}</span>
@@ -538,14 +554,8 @@ function RescheduleModal({ appt, isDark, onClose, onSuccess }: {
         <DialogHeader><DialogTitle>Reagendar consulta</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <p className={cn("text-sm", isDark ? "text-white/50" : "text-gray-500")}>Paciente: <strong>{appt.patient_name}</strong></p>
-          <div className="space-y-1.5">
-            <Label className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>Novo inicio</Label>
-            <Input type="datetime-local" value={newStart} onChange={(e) => setNewStart(e.target.value)} className={inputCls} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>Novo fim</Label>
-            <Input type="datetime-local" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} className={inputCls} />
-          </div>
+          <DateTimePicker label="Novo início" required value={newStart} onChange={setNewStart} isDark={isDark} />
+          <DateTimePicker label="Novo fim" required value={newEnd} onChange={setNewEnd} isDark={isDark} />
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1 rounded-xl" onClick={onClose}>Cancelar</Button>
             <Button className="flex-1 rounded-xl bg-violet-500 hover:bg-violet-400 border-0 text-white" disabled={mutation.isPending || !newStart || !newEnd} onClick={() => mutation.mutate()}>
@@ -559,16 +569,22 @@ function RescheduleModal({ appt, isDark, onClose, onSuccess }: {
 }
 
 // New Appointment Form
-function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark, onSuccess }: {
+function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark, prefillStart, onSuccess }: {
   open: boolean; onClose: () => void;
   procedures: Procedure[]; rooms: Room[]; dentists: User[];
   isDark: boolean;
+  prefillStart?: string;
   onSuccess: (appt: Appointment) => void;
 }) {
   const [step, setStep] = useState<"patient" | "details">("patient");
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null);
-  const [form, setForm] = useState({ dentist_id: "", room_id: "", procedure_id: "", start_time: "", end_time: "", notes: "" });
+  const [form, setForm] = useState({ dentist_id: "", room_id: "", procedure_id: "", start_time: prefillStart ?? "", end_time: "", notes: "" });
+
+  // Sync prefillStart when it changes
+  useEffect(() => {
+    if (prefillStart) setForm((f) => ({ ...f, start_time: prefillStart }));
+  }, [prefillStart]);
 
   const { data: searchResult } = useQuery<PaginatedPatients>({
     queryKey: ["patients-search", patientSearch],
@@ -576,23 +592,23 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
     enabled: patientSearch.length >= 2,
   });
 
+  // Auto-calculate end_time: same day as start, duration from procedure (default 30min)
   useEffect(() => {
-    if (!form.start_time || !form.procedure_id) return;
+    if (!form.start_time) return;
     const proc = procedures.find((p) => p.id === form.procedure_id);
-    if (!proc?.duration_minutes) return;
+    const duration = proc?.duration_minutes ?? 30;
     const start = new Date(form.start_time);
-    const end = addMinutes(start, proc.duration_minutes);
+    if (isNaN(start.getTime())) return;
+    const end = addMinutes(start, duration);
     const pad = (n: number) => String(n).padStart(2, "0");
-    setForm((f) => ({
-      ...f,
-      end_time: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`,
-    }));
+    const endStr = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    setForm((f) => ({ ...f, end_time: endStr }));
   }, [form.start_time, form.procedure_id, procedures]);
 
   const mutation = useMutation({
     mutationFn: () => api.post("/appointments", {
       patient_id: selectedPatient!.id,
-      dentist_id: form.dentist_id,
+      dentist_id: form.dentist_id || undefined,
       room_id: form.room_id || undefined,
       procedure_id: form.procedure_id || undefined,
       start_time: new Date(form.start_time).toISOString(),
@@ -600,7 +616,11 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
       notes: form.notes || undefined,
     }).then((r) => r.data),
     onSuccess,
-    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Erro ao agendar"),
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e.msg ?? e).join(", ") : "Erro ao agendar";
+      toast.error(msg);
+    },
   });
 
   function reset() { setStep("patient"); setPatientSearch(""); setSelectedPatient(null); setForm({ dentist_id: "", room_id: "", procedure_id: "", start_time: "", end_time: "", notes: "" }); }
@@ -615,7 +635,7 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={cn("max-w-lg rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
+      <DialogContent className={cn("max-w-3xl w-[95vw] rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200 text-gray-800")}>
         <DialogHeader>
           <DialogTitle className={isDark ? "text-white" : "text-gray-800"}>Nova Consulta</DialogTitle>
         </DialogHeader>
@@ -667,7 +687,7 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
             </div>
 
             <div className="space-y-1.5">
-              <Label className={labelCls}>Dentista <span className="text-red-400">*</span></Label>
+              <Label className={labelCls}>Dentista</Label>
               <div className="space-y-1.5">
                 {dentists.map((den) => (
                   <button key={den.id} onClick={() => set("dentist_id", den.id)}
@@ -711,14 +731,21 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className={labelCls}>Inicio <span className="text-red-400">*</span></Label>
-                <Input type="datetime-local" value={form.start_time} onChange={(e) => set("start_time", e.target.value)} className={cn("text-sm", inputCls)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className={labelCls}>Fim <span className="text-red-400">*</span></Label>
-                <Input type="datetime-local" value={form.end_time} onChange={(e) => set("end_time", e.target.value)} className={cn("text-sm", inputCls)} />
-              </div>
+              <DateTimePicker
+                label="Início"
+                required
+                value={form.start_time}
+                onChange={(v) => set("start_time", v)}
+                isDark={isDark}
+              />
+              <DateTimePicker
+                label="Fim"
+                required
+                value={form.end_time}
+                onChange={(v) => set("end_time", v)}
+                isDark={isDark}
+                suggestedDate={form.start_time}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -740,7 +767,7 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
               <Button variant="outline" className={cn("flex-1 rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500")} onClick={() => setStep("patient")}>Voltar</Button>
               <Button className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 border-0 rounded-xl shadow-lg shadow-cyan-500/20 text-white"
                 onClick={() => mutation.mutate()}
-                disabled={mutation.isPending || !form.dentist_id || !form.start_time || !form.end_time}>
+                disabled={mutation.isPending || !form.start_time || !form.end_time}>
                 {mutation.isPending ? "Agendando..." : "Confirmar Agendamento"}
               </Button>
             </div>

@@ -21,6 +21,8 @@ export interface Clinic {
   address: string | null;
 }
 
+export type PatientStatus = "active" | "inactive" | "deceased" | "no_recent_visit" | "transferred";
+
 export type Gender = "male" | "female" | "other";
 export type MaritalStatus = "single" | "married" | "divorced" | "widowed" | "other";
 
@@ -59,6 +61,7 @@ export interface Patient {
   medical_history: string | null;
   observations: string | null;
   is_active: boolean;
+  status: PatientStatus;
   created_at: string;
   updated_at: string;
   contacts: PatientContact[];
@@ -73,6 +76,7 @@ export interface PatientListItem {
   email: string | null;
   birth_date: string | null;
   is_active: boolean;
+  status: PatientStatus;
 }
 
 export interface PaginatedPatients {
