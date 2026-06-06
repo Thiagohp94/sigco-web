@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import type { Appointment, AppointmentLog, ContactLog, PatientListItem, PaginatedPatients } from "@/types";
 import { Input } from "@/components/ui/input";
-import { Search, Activity, Calendar, Phone, CheckCircle2, XCircle, AlertTriangle, Clock, X } from "lucide-react";
+import { Search, Activity, Calendar, Phone, CheckCircle2, XCircle, AlertTriangle, Clock, X, ArrowLeft } from "lucide-react";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ type TimelineEvent =
 
 export default function TimelinePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const isDark = useTheme();
   const [search, setSearch] = useState("");
   const pid = searchParams?.get("patientId");
@@ -67,12 +68,18 @@ export default function TimelinePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className={cn("text-2xl font-bold flex items-center gap-3", isDark ? "text-white" : "text-gray-800")}>
-        <div className="w-9 h-9 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
-          <Activity className="w-4 h-4 text-white" />
-        </div>
-        Timeline de Pacientes
-      </h1>
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.back()}
+          className={cn("p-2 rounded-xl transition-all", isDark ? "hover:bg-white/5 text-white/40 hover:text-white" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700")}>
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className={cn("text-2xl font-bold flex items-center gap-3", isDark ? "text-white" : "text-gray-800")}>
+          <div className="w-9 h-9 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+            <Activity className="w-4 h-4 text-white" />
+          </div>
+          Timeline de Pacientes
+        </h1>
+      </div>
 
       {/* Patient search */}
       <div className="space-y-2 max-w-md">

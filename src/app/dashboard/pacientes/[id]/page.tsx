@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Phone, Mail, MapPin, AlertCircle, FileText, Stethoscope,
   Edit, Calendar, CheckCircle2, XCircle, Clock, Activity, Trash2,
+  Plus, RotateCcw, X,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { format, parseISO, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { OdontogramView } from "@/components/odontogram/odontogram-view";
 import { cn } from "@/lib/utils";
@@ -106,6 +108,18 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const cardBg = isDark ? "glass-card" : "bg-white border border-gray-100 shadow-sm";
   const statusCfg = getStatusConfig(patient.status ?? "active", isDark);
 
+  // Future appointments (upcoming)
+  const now = new Date();
+  const upcomingAppts = appointments
+    .filter((a) => isAfter(parseISO(a.start_time), now) && a.status !== "cancelled" && a.status !== "rescheduled")
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+  const cancelAppt = useMutation({
+    mutationFn: (apptId: string) => api.patch(`/appointments/${apptId}`, { status: "cancelled" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["patient-appointments", id] }); toast.success("Consulta cancelada."); },
+    onError: () => toast.error("Erro ao cancelar"),
+  });
+
   // Build timeline from logs + appointments
   const timelineItems = [
     ...apptLogs.map((l) => ({ id: l.id, date: l.created_at, type: "log" as const, data: l })),
@@ -161,6 +175,15 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               </>
             )}
           </div>
+          {/* Agendar button */}
+          <Button
+            size="sm"
+            onClick={() => router.push(`/dashboard/agenda?patientId=${id}&patientName=${encodeURIComponent(patient.name)}`)}
+            className="rounded-xl gap-1.5 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 border-0 text-white shadow-lg shadow-cyan-500/20"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Agendar
+          </Button>
           {/* Edit button */}
           <Button
             size="sm"
@@ -294,6 +317,53 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Right column */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Upcoming appointments banner */}
+          {upcomingAppts.length > 0 && (
+            <div className={cn("rounded-2xl overflow-hidden border", isDark ? "border-cyan-500/20 bg-cyan-500/5" : "border-cyan-200 bg-cyan-50")}>
+              <div className={cn("flex items-center justify-between px-5 py-3 border-b", isDark ? "border-cyan-500/15" : "border-cyan-200")}>
+                <div className="flex items-center gap-2">
+                  <Calendar className={cn("w-3.5 h-3.5", isDark ? "text-cyan-400" : "text-cyan-600")} />
+                  <h2 className={cn("font-semibold text-sm", isDark ? "text-cyan-300" : "text-cyan-700")}>
+                    {upcomingAppts.length === 1 ? "1 consulta agendada" : `${upcomingAppts.length} consultas agendadas`}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => router.push(`/dashboard/agenda?patientId=${id}&patientName=${encodeURIComponent(patient.name)}`)}
+                  className={cn("text-xs font-medium px-3 py-1.5 rounded-lg transition-all", isDark ? "text-cyan-400 hover:bg-cyan-500/10" : "text-cyan-600 hover:bg-cyan-100")}>
+                  <Plus className="w-3 h-3 inline mr-1" />Nova
+                </button>
+              </div>
+              <div className="divide-y divide-cyan-500/10">
+                {upcomingAppts.slice(0, 4).map((a) => (
+                  <div key={a.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("font-medium text-sm", isDark ? "text-cyan-200" : "text-cyan-800")}>
+                        {format(parseISO(a.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                      <p className={cn("text-xs mt-0.5", isDark ? "text-cyan-400/60" : "text-cyan-600/70")}>
+                        {a.procedure_name ?? "Avaliação"}{a.dentist_name ? ` · ${a.dentist_name}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => router.push(`/dashboard/agenda`)}
+                        title="Reagendar"
+                        className={cn("p-1.5 rounded-lg transition-all", isDark ? "text-cyan-400/50 hover:text-cyan-300 hover:bg-cyan-500/10" : "text-cyan-500 hover:bg-cyan-100")}>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm("Cancelar esta consulta?")) cancelAppt.mutate(a.id); }}
+                        title="Cancelar"
+                        className={cn("p-1.5 rounded-lg transition-all", isDark ? "text-cyan-400/50 hover:text-red-400 hover:bg-red-500/10" : "text-cyan-500 hover:text-red-500 hover:bg-red-50")}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Odontogram */}
           <div className={cn("rounded-2xl overflow-hidden", cardBg)}>
             <div className={cn("flex items-center gap-2 px-5 py-3 border-b", border)}>

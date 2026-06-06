@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 import type { Appointment, AppointmentStatus, AppointmentLog, DelayLog, Procedure, Room, User, PatientListItem, PaginatedPatients } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -58,9 +59,13 @@ function InfoCell({ label, value, isDark }: { label: string; value: string; isDa
 
 export default function AgendaPage() {
   const qc = useQueryClient();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<ViewMode>("semana");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showForm, setShowForm] = useState(false);
+  // Open form immediately if coming from patient page via ?patientId=
+  const prefillPatientId = searchParams?.get("patientId");
+  const prefillPatientName = searchParams?.get("patientName");
+  const [showForm, setShowForm] = useState(!!prefillPatientId);
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
   const [showReschedule, setShowReschedule] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -359,6 +364,7 @@ export default function AgendaPage() {
         procedures={procedures} rooms={rooms} dentists={dentists}
         isDark={isDark}
         prefillStart={prefillStart}
+        prefillPatient={prefillPatientId && prefillPatientName ? { id: prefillPatientId, name: prefillPatientName } : undefined}
         onSuccess={(appt: Appointment) => {
           qc.invalidateQueries({ queryKey: ["appointments"] });
           setShowForm(false);
@@ -567,16 +573,19 @@ function RescheduleModal({ appt, isDark, onClose, onSuccess }: {
 }
 
 // New Appointment Form
-function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark, prefillStart, onSuccess }: {
+function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark, prefillStart, prefillPatient, onSuccess }: {
   open: boolean; onClose: () => void;
   procedures: Procedure[]; rooms: Room[]; dentists: User[];
   isDark: boolean;
   prefillStart?: string;
+  prefillPatient?: { id: string; name: string };
   onSuccess: (appt: Appointment) => void;
 }) {
-  const [step, setStep] = useState<"patient" | "details">("patient");
+  const [step, setStep] = useState<"patient" | "details">(prefillPatient ? "details" : "patient");
   const [patientSearch, setPatientSearch] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(
+    prefillPatient ? { id: prefillPatient.id, name: prefillPatient.name, cpf: null, phone_primary: null, email: null, status: "active", is_active: true } : null
+  );
   const [form, setForm] = useState({ dentist_id: "", room_id: "", procedure_id: "", start_time: prefillStart ?? "", end_time: "", notes: "" });
 
   // Sync prefillStart when it changes
@@ -631,7 +640,12 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
     },
   });
 
-  function reset() { setStep("patient"); setPatientSearch(""); setSelectedPatient(null); setForm({ dentist_id: "", room_id: "", procedure_id: "", start_time: "", end_time: "", notes: "" }); }
+  function reset() {
+    setStep(prefillPatient ? "details" : "patient");
+    setPatientSearch("");
+    setSelectedPatient(prefillPatient ? { id: prefillPatient.id, name: prefillPatient.name, cpf: null, phone_primary: null, email: null, status: "active", is_active: true } : null);
+    setForm({ dentist_id: "", room_id: "", procedure_id: "", start_time: "", end_time: "", notes: "" });
+  }
   function handleClose() { reset(); onClose(); }
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
 

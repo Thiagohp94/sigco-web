@@ -217,4 +217,3 @@ export default function ProntuarioPage({ params }: { params: Promise<{ patientId
     </div>
   );
 }
-      
