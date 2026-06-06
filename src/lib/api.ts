@@ -6,6 +6,20 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// Evita múltiplos toasts do mesmo tipo em rajadas de requisições
+let _noConnectionToastShown = false;
+let _noConnectionTimer: ReturnType<typeof setTimeout> | null = null;
+
+function toastNoConnection() {
+  if (_noConnectionToastShown) return;
+  _noConnectionToastShown = true;
+  toast.error("Sem conexão com o servidor. Verifique se o backend está rodando.");
+  // Permite novo toast após 5 segundos
+  _noConnectionTimer = setTimeout(() => {
+    _noConnectionToastShown = false;
+  }, 5000);
+}
+
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token");
@@ -68,8 +82,11 @@ api.interceptors.response.use(
     }
 
     // ── Sem resposta (rede offline / CORS / backend fora) ──
-    if (!error.response && !original._retry) {
-      toast.error("Sem conexão com o servidor. Verifique se o backend está rodando.");
+    // Não mostrar toast para endpoints de auth (login/refresh) — eles têm handler próprio
+    // Usar debounce para evitar múltiplos toasts em rajada de requisições
+    const isAuthEndpoint = original?.url?.includes("/auth/");
+    if (!error.response && !original._retry && !isAuthEndpoint) {
+      toastNoConnection();
     }
 
     return Promise.reject(error);
