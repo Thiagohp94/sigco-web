@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Calendar, Clock, CheckCircle2, UserX, Users, ArrowRight, Stethoscope,
-  Sparkles, TrendingUp, Play, StopCircle, X, FileText, ChevronRight,
+  Sparkles, TrendingUp, Play, StopCircle, X, FileText, ChevronRight, RotateCcw,
 } from "lucide-react";
 import api from "@/lib/api";
 import { format, startOfDay, endOfDay, parseISO, differenceInMinutes } from "date-fns";
@@ -318,48 +318,60 @@ export default function DashboardPage() {
                 <Info label="Status"       value={(STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.completed).label} isDark={isDark} />
               </div>
 
-              {/* Action buttons */}
+              {/* Action buttons — primary actions */}
               <div className="grid grid-cols-2 gap-2">
                 {(selected.status === "scheduled" || selected.status === "confirmed") && (
                   <>
                     <button onClick={() => updateStatus.mutate({ id: selected.id, status: "in_progress" })}
+                      disabled={updateStatus.isPending}
                       className="flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20">
                       <Play className="w-4 h-4" /> Iniciar
                     </button>
                     <button onClick={() => updateStatus.mutate({ id: selected.id, status: "cancelled" })}
+                      disabled={updateStatus.isPending}
                       className={cn("flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors",
-                        isDark ? "border-white/10 text-white/40 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                        isDark ? "border-red-500/20 text-red-400 hover:bg-red-500/10" : "border-red-200 text-red-500 hover:bg-red-50")}>
                       <X className="w-4 h-4" /> Cancelar
                     </button>
                   </>
                 )}
                 {selected.status === "in_progress" && (
-                  <button onClick={() => updateStatus.mutate({ id: selected.id, status: "completed" })}
-                    className="col-span-2 flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-400 transition-colors shadow-lg shadow-cyan-500/20">
-                    <StopCircle className="w-4 h-4" /> Finalizar consulta
-                  </button>
+                  <>
+                    <button onClick={() => updateStatus.mutate({ id: selected.id, status: "completed" })}
+                      disabled={updateStatus.isPending}
+                      className="col-span-2 flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-400 transition-colors shadow-lg shadow-cyan-500/20">
+                      <StopCircle className="w-4 h-4" /> Finalizar consulta
+                    </button>
+                  </>
                 )}
-                {selected.status === "no_show" && (
-                  <button onClick={() => updateStatus.mutate({ id: selected.id, status: "scheduled" })}
-                    className="col-span-2 flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-medium hover:bg-violet-400 transition-colors">
-                    Reagendar
+                {(selected.status === "cancelled" || selected.status === "no_show" || selected.status === "rescheduled") && (
+                  <button
+                    onClick={() => { router.push(`/dashboard/agenda?patientId=${selected.patient_id}&patientName=${encodeURIComponent(selected.patient_name ?? "")}`); setSelected(null); }}
+                    className="col-span-2 flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-medium hover:bg-violet-400 transition-colors shadow-lg shadow-violet-500/20">
+                    <RotateCcw className="w-4 h-4" /> Reagendar consulta
                   </button>
                 )}
               </div>
 
-              {/* Divider */}
-              <div className="flex gap-2">
+              {/* Secondary actions */}
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => { router.push(`/dashboard/pacientes/${selected.patient_id}`); setSelected(null); }}
-                  className={cn("flex-1 flex items-center gap-2 justify-center px-3 py-2 rounded-xl text-sm border transition-colors",
-                    isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-                  <Users className="w-3.5 h-3.5" /> Ver paciente
+                  className={cn("flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-xs border transition-colors",
+                    isDark ? "border-white/10 text-white/50 hover:bg-white/5 hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700")}>
+                  <Users className="w-4 h-4" /> Ver paciente
                 </button>
                 <button
                   onClick={() => { router.push(`/dashboard/prontuario/${selected.patient_id}`); setSelected(null); }}
-                  className={cn("flex-1 flex items-center gap-2 justify-center px-3 py-2 rounded-xl text-sm border transition-colors",
-                    isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-                  <FileText className="w-3.5 h-3.5" /> Prontuário
+                  className={cn("flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-xs border transition-colors",
+                    isDark ? "border-white/10 text-white/50 hover:bg-white/5 hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700")}>
+                  <FileText className="w-4 h-4" /> Prontuário
+                </button>
+                <button
+                  onClick={() => { router.push(`/dashboard/agenda?patientId=${selected.patient_id}&patientName=${encodeURIComponent(selected.patient_name ?? "")}`); setSelected(null); }}
+                  className={cn("flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-xs border transition-colors",
+                    isDark ? "border-white/10 text-white/50 hover:bg-white/5 hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700")}>
+                  <RotateCcw className="w-4 h-4" /> Reagendar
                 </button>
               </div>
             </div>

@@ -89,6 +89,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     onError: () => toast.error("Erro ao remover registro"),
   });
 
+  // ⚠️ MUST be before any early return — Rules of Hooks
+  const cancelAppt = useMutation({
+    mutationFn: (apptId: string) => api.patch(`/appointments/${apptId}`, { status: "cancelled" }).then((r) => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["patient-appointments", id] }); toast.success("Consulta cancelada."); },
+    onError: () => toast.error("Erro ao cancelar"),
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -113,12 +120,6 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const upcomingAppts = appointments
     .filter((a) => isAfter(parseISO(a.start_time), now) && a.status !== "cancelled" && a.status !== "rescheduled")
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-  const cancelAppt = useMutation({
-    mutationFn: (apptId: string) => api.patch(`/appointments/${apptId}`, { status: "cancelled" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["patient-appointments", id] }); toast.success("Consulta cancelada."); },
-    onError: () => toast.error("Erro ao cancelar"),
-  });
 
   // Build timeline from logs + appointments
   const timelineItems = [
