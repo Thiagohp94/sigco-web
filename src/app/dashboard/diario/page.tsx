@@ -34,6 +34,7 @@ export default function DiarioPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data: entries = [] } = useQuery<LogBookEntry[]>({
     queryKey: ["logbook"],
@@ -145,7 +146,7 @@ export default function DiarioPage() {
                           className={cn("p-1 rounded-lg transition-all", isDark ? "text-white/30 hover:text-cyan-400 hover:bg-cyan-500/10" : "text-gray-400 hover:text-cyan-600 hover:bg-cyan-50")}>
                           <Edit className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => { if (confirm("Remover este registro?")) deleteMutation.mutate(entry.id); }}
+                        <button onClick={() => setConfirmDeleteId(entry.id)}
                           className={cn("p-1 rounded-lg transition-all", isDark ? "text-white/30 hover:text-red-400 hover:bg-red-500/10" : "text-gray-400 hover:text-red-500 hover:bg-red-50")}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -219,6 +220,33 @@ export default function DiarioPage() {
                 {saveMutation.isPending ? "Salvando…" : editingId ? "Salvar alterações" : "Registrar"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmação de exclusão */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
+        <DialogContent className={cn("max-w-sm rounded-2xl", isDark ? "glass-strong border-white/10 text-white" : "bg-white border-gray-200")}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-red-400" />
+              Remover registro
+            </DialogTitle>
+          </DialogHeader>
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>
+            Tem certeza que deseja remover este registro? Esta ação não pode ser desfeita.
+          </p>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setConfirmDeleteId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1 rounded-xl bg-red-500 hover:bg-red-400 border-0 text-white"
+              disabled={deleteMutation.isPending}
+              onClick={() => { if (confirmDeleteId) { deleteMutation.mutate(confirmDeleteId); setConfirmDeleteId(null); } }}
+            >
+              {deleteMutation.isPending ? "Removendo..." : "Remover"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

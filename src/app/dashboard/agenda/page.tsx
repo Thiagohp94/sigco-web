@@ -781,4 +781,25 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
 
             <div className="space-y-1.5">
               <Label className={labelCls}>Observacoes</Label>
-              <Textarea rows={2} placeholder="Obse
+              <Textarea rows={2} placeholder="Observações sobre o agendamento..." value={form.notes} onChange={(e) => set("notes", e.target.value)} className={cn(inputCls, "resize-none")} />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-1">
+              <Button variant="outline" onClick={handleClose}
+                className={cn("rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500")}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={mutation.isPending || !form.patient_id || !form.start_time || !form.end_time}
+                onClick={() => mutation.mutate()}
+                className="bg-gradient-to-r from-cyan-500 to-cyan-600 border-0 rounded-xl text-white shadow-lg shadow-cyan-500/20"
+              >
+                {mutation.isPending ? "Salvando..." : "Agendar consulta"}
+              </Button>
+            </div>
+          </div>
+          )}
+        </DialogContent>
+      </Dialog>
+  );
+}
