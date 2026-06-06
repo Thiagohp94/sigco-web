@@ -44,8 +44,8 @@ const navGroups = [
     label: "Financeiro",
     items: [
       { href: "/dashboard/financeiro", label: "Visão Geral", icon: DollarSign },
-      { href: "/dashboard/financeiro/receber", label: "Contas a Receber", icon: DollarSign },
-      { href: "/dashboard/financeiro/pagar", label: "Contas a Pagar", icon: DollarSign },
+      { href: "/dashboard/financeiro/receber", label: "Cobranças de Pacientes", icon: DollarSign },
+      { href: "/dashboard/financeiro/pagar", label: "Gastos da Clínica", icon: DollarSign },
     ],
   },
   {
