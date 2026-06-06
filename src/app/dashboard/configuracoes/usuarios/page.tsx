@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import { Plus, Users, Edit2, UserX, UserCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,14 +48,14 @@ export default function UsuariosPage() {
         const payload: any = { name: form.name, email: form.email, role: form.role, cpf: form.cpf || undefined };
         return api.patch(`/users/${editingId}`, payload).then((r) => r.data);
       }
-      return api.post("/users", { ...form, clinic_id: me?.clinic_id, cpf: form.cpf || undefined }).then((r) => r.data);
+      return api.post("/users", { ...form, cpf: form.cpf || undefined }).then((r) => r.data);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       toast.success(editingId ? "Usuário atualizado!" : "Usuário criado!");
       closeForm();
     },
-    onError: (e: any) => toast.error(e?.response?.data?.detail ?? "Erro ao salvar"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erro ao salvar usuário")),
   });
 
   const toggleActiveMutation = useMutation({
@@ -101,12 +101,12 @@ export default function UsuariosPage() {
       {/* Stats */}
       <div className={cn("grid grid-cols-3 gap-3")}>
         {[
-          { label: "Total", value: users.length, color: "text-white" },
-          { label: "Ativos", value: users.filter((u: any) => u.is_active).length, color: "text-emerald-400" },
-          { label: "Dentistas", value: users.filter((u: any) => u.role === "dentist").length, color: "text-cyan-400" },
+          { label: "Total", value: users.length, dark: "text-white", light: "text-gray-800" },
+          { label: "Ativos", value: users.filter((u: any) => u.is_active).length, dark: "text-emerald-400", light: "text-emerald-600" },
+          { label: "Dentistas", value: users.filter((u: any) => u.role === "dentist").length, dark: "text-cyan-400", light: "text-cyan-600" },
         ].map((s) => (
           <div key={s.label} className={cn("rounded-xl border p-4 text-center", isDark ? "glass-card border-white/5" : "bg-white border-gray-100 shadow-sm")}>
-            <p className={cn("text-2xl font-bold", s.color)}>{s.value}</p>
+            <p className={cn("text-2xl font-bold", isDark ? s.dark : s.light)}>{s.value}</p>
             <p className={cn("text-xs", txtMuted)}>{s.label}</p>
           </div>
         ))}

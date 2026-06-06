@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { Plus, TrendingDown, CheckCircle2, Clock, AlertCircle, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export default function ContasPagarPage() {
       toast.success(editingId ? "Despesa atualizada!" : "Despesa registrada!");
       closeForm();
     },
-    onError: (e: any) => toast.error(e?.response?.data?.detail ?? "Erro ao salvar"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erro ao salvar despesa")),
   });
 
   const markPaidMutation = useMutation({

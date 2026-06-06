@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
-import { cn } from "@/lib/utils";
+import { cn, apiErrorMessage } from "@/lib/utils";
 import { Settings, Building2, Phone, Mail, FileText, MapPin, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,7 @@ export default function ClinicaPage() {
       qc.invalidateQueries({ queryKey: ["clinic"] });
       toast.success("Dados da clínica atualizados!");
     },
-    onError: (e: any) => toast.error(e?.response?.data?.detail ?? "Erro ao salvar"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erro ao salvar dados da clínica")),
   });
 
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
