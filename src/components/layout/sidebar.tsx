@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 import {
   Calendar, Users, LayoutDashboard, LogOut, ChevronRight,
   Package, ClipboardList, DoorOpen, BookOpen, Phone, Sun, Moon, RefreshCw,
-  Activity, ChevronDown,
+  Activity, ChevronDown, DollarSign, Settings,
 } from "lucide-react";
 import { ToothLogo } from "@/components/icons/tooth-logo";
 import { logout } from "@/lib/auth";
 import { useAuthStore } from "@/store/auth";
-import { useState, useEffect } from "react";
-import { toggleTheme, getTheme, type Theme } from "@/lib/theme";
+import { useState } from "react";
+import { toggleTheme } from "@/lib/theme";
+import { useTheme } from "@/hooks/useTheme";
 
 const navGroups = [
   {
@@ -39,28 +40,36 @@ const navGroups = [
       { href: "/dashboard/timeline", label: "Timeline de Pacientes", icon: Activity },
     ],
   },
+  {
+    label: "Financeiro",
+    items: [
+      { href: "/dashboard/financeiro", label: "Visão Geral", icon: DollarSign },
+      { href: "/dashboard/financeiro/receber", label: "Contas a Receber", icon: DollarSign },
+      { href: "/dashboard/financeiro/pagar", label: "Contas a Pagar", icon: DollarSign },
+    ],
+  },
+  {
+    label: "Configurações",
+    items: [
+      { href: "/dashboard/configuracoes/usuarios", label: "Usuários", icon: Users },
+      { href: "/dashboard/configuracoes/clinica", label: "Dados da Clínica", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const isDark = useTheme();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    setThemeState(getTheme());
-  }, []);
-
   function handleToggleTheme() {
-    const next = toggleTheme();
-    setThemeState(next);
+    toggleTheme(); // useTheme() detecta a mudança via MutationObserver automaticamente
   }
 
   function toggleGroup(label: string) {
     setCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
   }
-
-  const isDark = theme === "dark";
 
   return (
     <aside className={cn(

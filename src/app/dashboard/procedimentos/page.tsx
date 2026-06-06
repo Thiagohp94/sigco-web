@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, ClipboardList, Edit2, Trash2, Clock, DollarSign, Package, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/hooks/useTheme";
 
 const COLORS = ["#06B6D4", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#3B82F6", "#14B8A6"];

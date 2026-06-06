@@ -21,7 +21,6 @@ import {
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getTheme } from "@/lib/theme";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -782,20 +781,4 @@ function NewAppointmentForm({ open, onClose, procedures, rooms, dentists, isDark
 
             <div className="space-y-1.5">
               <Label className={labelCls}>Observacoes</Label>
-              <Textarea rows={2} placeholder="Observacoes..." value={form.notes} onChange={(e) => set("notes", e.target.value)} className={cn("resize-none", inputCls)} />
-            </div>
-
-            <div className="flex gap-2 pb-1">
-              <Button variant="outline" className={cn("flex-1 rounded-xl", isDark ? "border-white/10 text-white/50 hover:bg-white/5" : "border-gray-200 text-gray-500")} onClick={() => setStep("patient")}>Voltar</Button>
-              <Button className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 border-0 rounded-xl shadow-lg shadow-cyan-500/20 text-white"
-                onClick={() => mutation.mutate()}
-                disabled={mutation.isPending || !form.start_time || !form.end_time}>
-                {mutation.isPending ? "Agendando..." : "Confirmar Agendamento"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
+              <Textarea rows={2} placeholder="Obse
